@@ -1,3 +1,16 @@
+import {
+  getCurrentUser,
+  onAuthChange,
+  signInWithGoogle,
+  logOut,
+  saveUserProfile,
+  saveQuests,
+  saveSession,
+  saveDailyLog,
+  loadAllData,
+  saveAllData,
+} from "./firebase.js";
+
 const CURRENT_SCHEMA = 1;
 const DAILY_GOAL_COUNT = 3;
 const STORAGE_KEYS = {
@@ -157,6 +170,8 @@ const runtime = {
   listenersAttached: false,
   reviewDraft: { text: "", satisfaction: 0 },
   shopCategory: "all",
+  authUser: null,
+  syncInProgress: false,
 };
 
 function bootstrap() {
@@ -168,6 +183,40 @@ function bootstrap() {
   attachGlobalListeners();
   render();
   window.addEventListener("visibilitychange", handleVisibilityChange);
+
+  // Firebase Auth 구독
+  onAuthChange(async (user) => {
+    runtime.authUser = user;
+    if (user) {
+      try {
+        runtime.syncInProgress = true;
+        render();
+        const cloudData = await loadAllData(user.uid);
+        if (cloudData.user) {
+          // Firestore 데이터가 있으면 병합 (클라우드 우선)
+          data.user = { ...createDefaultUser(), ...cloudData.user };
+          data.quests = cloudData.quests.length > 0 ? cloudData.quests : data.quests;
+          data.sessions = cloudData.sessions.length > 0 ? cloudData.sessions : data.sessions;
+          data.dailyLogs = Object.keys(cloudData.dailyLogs).length > 0 ? cloudData.dailyLogs : data.dailyLogs;
+          // 로컬에도 동기화
+          StorageService.set(STORAGE_KEYS.user, data.user);
+          StorageService.set(STORAGE_KEYS.quests, data.quests);
+          StorageService.set(STORAGE_KEYS.sessions, data.sessions);
+          StorageService.set(STORAGE_KEYS.dailyLogs, data.dailyLogs);
+          applyDailyReset();
+          ensureSelectedQuest();
+        } else {
+          // 첫 로그인: 로컬 데이터를 클라우드로 업로드
+          await saveAllData(user.uid, data);
+        }
+      } catch (e) {
+        console.error("Firebase 동기화 실패:", e);
+      } finally {
+        runtime.syncInProgress = false;
+      }
+    }
+    render();
+  });
 }
 
 function createQuestDraft() {
@@ -560,6 +609,24 @@ function handleClick(event) {
     }
     showToast("보스 리뷰를 저장했습니다!");
     enterBreak(result);
+    return;
+  }
+
+  if (action === "firebase-login") {
+    signInWithGoogle().then(() => {
+      showToast("로그인 성공! 데이터를 동기화합니다.");
+    }).catch((err) => {
+      showToast("로그인 실패: " + (err.message || "다시 시도해주세요."));
+    });
+    return;
+  }
+
+  if (action === "firebase-logout") {
+    logOut().then(() => {
+      runtime.authUser = null;
+      showToast("로그아웃했습니다.");
+      render();
+    });
     return;
   }
 }
@@ -1171,6 +1238,12 @@ function renderHomeView() {
             <h1 class="title-large">집중하면 서재가 자랍니다</h1>
           </div>
           <div class="topbar__actions">
+            ${runtime.authUser
+      ? `<span class="pill pill--user" title="${escapeHtml(runtime.authUser.displayName || '')}">
+                  ${runtime.authUser.photoURL ? `<img src="${runtime.authUser.photoURL}" class="avatar-tiny" alt=""/>` : '👤'}
+                </span>`
+      : ''}
+            ${runtime.syncInProgress ? '<span class="pill pill--sync">☁️ 동기화중...</span>' : ''}
             <span class="pill pill--coin">🪙 ${data.user.coins || 0}</span>
             <button class="icon-button" data-action="show-shop" aria-label="상점">🛒</button>
             <button class="icon-button" data-action="show-summary" aria-label="일일 요약">📊</button>
@@ -1185,12 +1258,12 @@ function renderHomeView() {
               <span class="pill pill--ghost">${getTitleForLevel(data.user.level)}</span>
             </div>
             ${renderStudyRoom({
-    level: data.user.studyRoomLevel,
-    progress: getAmbientProgress(data.user.studyRoomLevel),
-    compact: false,
-    frameLabel: `서재 Lv.${data.user.studyRoomLevel}`,
-    equippedItems: data.user.equippedItems || [],
-  })}
+        level: data.user.studyRoomLevel,
+        progress: getAmbientProgress(data.user.studyRoomLevel),
+        compact: false,
+        frameLabel: `서재 Lv.${data.user.studyRoomLevel}`,
+        equippedItems: data.user.equippedItems || [],
+      })}
             <div class="stats-row">
               <article class="stat-chip">
                 <span class="stat-chip__label">연속 출석</span>
@@ -1702,6 +1775,23 @@ function renderSettingsView() {
                 전체 초기화
               </button>
             </div>
+          </section>
+
+          <section class="panel">
+            <p class="eyebrow">☁️ 클라우드 계정</p>
+            ${runtime.authUser ? `
+              <h2 class="title-medium">${escapeHtml(runtime.authUser.displayName || runtime.authUser.email || '로그인됨')}</h2>
+              <p class="body-copy">Google 계정으로 로그인 중입니다. 진행 상황이 클라우드에 자동 저장됩니다.</p>
+              <div class="control-row">
+                <button class="ghost-button" data-action="firebase-logout">로그아웃</button>
+              </div>
+            ` : `
+              <h2 class="title-medium">로그인하여 데이터를 저장하세요</h2>
+              <p class="body-copy">Google 계정으로 로그인하면 기기 간 진행 상황을 동기화할 수 있습니다.</p>
+              <div class="control-row">
+                <button class="primary-button" data-action="firebase-login">🔑 Google 로그인</button>
+              </div>
+            `}
           </section>
         </div>
       </div>
@@ -2342,15 +2432,19 @@ function persistDomain(domain) {
   switch (domain) {
     case "user":
       StorageService.set(STORAGE_KEYS.user, data.user);
+      syncToCloud("user");
       break;
     case "quests":
       StorageService.set(STORAGE_KEYS.quests, data.quests);
+      syncToCloud("quests");
       break;
     case "sessions":
       StorageService.set(STORAGE_KEYS.sessions, data.sessions);
+      syncToCloud("sessions");
       break;
     case "dailyLogs":
       StorageService.set(STORAGE_KEYS.dailyLogs, data.dailyLogs);
+      syncToCloud("dailyLogs");
       break;
     case "activeSession":
       StorageService.set(STORAGE_KEYS.activeSession, data.activeSession);
@@ -2360,6 +2454,32 @@ function persistDomain(domain) {
       break;
     default:
       break;
+  }
+}
+
+// Firebase Firestore 동기화 (비동기, 실패해도 로컬은 유지)
+function syncToCloud(domain) {
+  const user = getCurrentUser();
+  if (!user || runtime.syncInProgress) return;
+
+  switch (domain) {
+    case "user":
+      saveUserProfile(user.uid, data.user).catch(console.error);
+      break;
+    case "quests":
+      saveQuests(user.uid, data.quests).catch(console.error);
+      break;
+    case "sessions": {
+      const latest = data.sessions[data.sessions.length - 1];
+      if (latest) saveSession(user.uid, latest).catch(console.error);
+      break;
+    }
+    case "dailyLogs": {
+      const today = getLocalDate();
+      const log = data.dailyLogs[today];
+      if (log) saveDailyLog(user.uid, today, log).catch(console.error);
+      break;
+    }
   }
 }
 

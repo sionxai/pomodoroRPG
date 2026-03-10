@@ -1385,3 +1385,35 @@ input {
   background: hsla(42 90% 50% / 0.15);
   transform: scale(1.2);
 }
+
+/* === Auth UI === */
+.avatar-tiny {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.pill--user {
+  padding: 2px 6px;
+}
+
+.pill--sync {
+  background: hsla(210 80% 50% / 0.18);
+  color: hsl(210 80% 72%);
+  border: 1px solid hsla(210 80% 50% / 0.3);
+  font-size: 0.72rem;
+  animation: pulse-sync 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-sync {
+
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}

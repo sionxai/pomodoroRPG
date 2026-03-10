@@ -1,0 +1,34 @@
+{
+    "firestore": {
+        "rules": "firestore.rules"
+    },
+    "hosting": {
+        "public": ".",
+        "ignore": [
+            "firebase.json",
+            "firestore.rules",
+            "**/node_modules/**",
+            ".git/**",
+            ".agent/**",
+            ".gemini/**"
+        ],
+        "rewrites": [
+            {
+                "source": "**",
+                "destination": "/index.html"
+            }
+        ]
+    },
+    "auth": {
+        "providers": {
+            "googleSignIn": {
+                "oAuthBrandDisplayName": "FocusQuest",
+                "supportEmail": "support@freeiwan.com",
+                "authorizedRedirectUris": [
+                    "http://localhost:4173",
+                    "http://127.0.0.1:4173"
+                ]
+            }
+        }
+    }
+}

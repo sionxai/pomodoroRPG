@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 사용자 개인 데이터: 본인만 읽기/쓰기
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 사용자 세션 기록: 본인만 접근
+    match /users/{userId}/sessions/{sessionId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 사용자 퀘스트 기록: 본인만 접근
+    match /users/{userId}/quests/{questId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 사용자 일일 로그: 본인만 접근
+    match /users/{userId}/dailyLogs/{logId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
