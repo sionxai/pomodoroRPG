@@ -1,6 +1,9 @@
 import {
   getCurrentUser,
+  getCloudAuthUiModel,
   onAuthChange,
+  prepareAuth,
+  signInWithApple,
   signInWithGoogle,
   logOut,
   saveUserProfile,
@@ -171,6 +174,7 @@ const runtime = {
   reviewDraft: { text: "", satisfaction: 0 },
   shopCategory: "all",
   authUser: null,
+  authStateReady: false,
   syncInProgress: false,
 };
 
@@ -181,12 +185,24 @@ function bootstrap() {
   ensureSelectedQuest();
   resolveInitialView();
   attachGlobalListeners();
+  runtime.authUser = getCurrentUser();
   render();
   window.addEventListener("visibilitychange", handleVisibilityChange);
+  prepareAuth().catch(() => {
+    showToast("로그인 세션을 복원하지 못했습니다.");
+    render();
+  });
 
-  // Firebase Auth 구독
   onAuthChange(async (user) => {
+    const isInitialAuthEvent = !runtime.authStateReady;
+    const previousUser = runtime.authUser;
+    runtime.authStateReady = true;
     runtime.authUser = user;
+
+    if (!isInitialAuthEvent && user && !previousUser) {
+      showToast("로그인 성공! 데이터를 동기화합니다.");
+    }
+
     if (user) {
       try {
         runtime.syncInProgress = true;
@@ -354,6 +370,31 @@ function attachGlobalListeners() {
   root.addEventListener("click", handleClick);
   root.addEventListener("submit", handleSubmit);
   root.addEventListener("input", handleInput);
+}
+
+function getAuthErrorMessage(error) {
+  const code = error?.code || "";
+  if (code === "auth/popup-closed-by-user") {
+    return "로그인 창이 닫혔습니다.";
+  }
+  if (code === "auth/cancelled-popup-request") {
+    return "이미 로그인 창이 열려 있습니다.";
+  }
+  if (code === "auth/account-exists-with-different-credential") {
+    return "이미 다른 방식으로 연결된 계정입니다.";
+  }
+  return error?.message || "다시 시도해주세요.";
+}
+
+async function handleCloudLogin(signIn) {
+  try {
+    const result = await signIn();
+    if (result?.status === "redirect") {
+      showToast("로그인 화면으로 이동합니다.");
+    }
+  } catch (error) {
+    showToast(`로그인 실패: ${getAuthErrorMessage(error)}`);
+  }
 }
 
 function handleClick(event) {
@@ -612,12 +653,13 @@ function handleClick(event) {
     return;
   }
 
-  if (action === "firebase-login") {
-    signInWithGoogle().then(() => {
-      showToast("로그인 성공! 데이터를 동기화합니다.");
-    }).catch((err) => {
-      showToast("로그인 실패: " + (err.message || "다시 시도해주세요."));
-    });
+  if (action === "firebase-login" || action === "firebase-login-google") {
+    handleCloudLogin(signInWithGoogle);
+    return;
+  }
+
+  if (action === "firebase-login-apple") {
+    handleCloudLogin(signInWithApple);
     return;
   }
 
@@ -1742,6 +1784,17 @@ function renderSummaryView() {
 }
 
 function renderSettingsView() {
+  const authUi = getCloudAuthUiModel();
+  const authButtons = authUi.providers
+    .map(
+      (provider) => `
+                <button class="${provider.className}" data-action="${provider.action}">
+                  ${provider.label}
+                </button>
+              `
+    )
+    .join("");
+
   return `
     <section class="screen screen--settings">
       <div class="hero-card">
@@ -1781,15 +1834,15 @@ function renderSettingsView() {
             <p class="eyebrow">☁️ 클라우드 계정</p>
             ${runtime.authUser ? `
               <h2 class="title-medium">${escapeHtml(runtime.authUser.displayName || runtime.authUser.email || '로그인됨')}</h2>
-              <p class="body-copy">Google 계정으로 로그인 중입니다. 진행 상황이 클라우드에 자동 저장됩니다.</p>
+              <p class="body-copy">${escapeHtml(authUi.loggedInBody)}</p>
               <div class="control-row">
                 <button class="ghost-button" data-action="firebase-logout">로그아웃</button>
               </div>
             ` : `
               <h2 class="title-medium">로그인하여 데이터를 저장하세요</h2>
-              <p class="body-copy">Google 계정으로 로그인하면 기기 간 진행 상황을 동기화할 수 있습니다.</p>
+              <p class="body-copy">${escapeHtml(authUi.loggedOutBody)}</p>
               <div class="control-row">
-                <button class="primary-button" data-action="firebase-login">🔑 Google 로그인</button>
+                ${authButtons}
               </div>
             `}
           </section>

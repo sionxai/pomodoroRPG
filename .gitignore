@@ -4,3 +4,7 @@ dist/
 *.log
 .agent/
 .gemini/
+
+# iOS native build (regenerated via `npx cap sync ios`)
+ios/
+.deriveddata/

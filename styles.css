@@ -1,5 +1,9 @@
 :root {
   color-scheme: dark;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
   --bg-deep: hsl(228 31% 8%);
   --bg-base: hsl(228 24% 12%);
   --bg-surface: hsl(228 18% 16%);
@@ -38,12 +42,16 @@ body {
 }
 
 body {
+  padding: 0;
   background:
     radial-gradient(circle at top left, hsla(36 92% 58% / 0.18), transparent 28%),
     radial-gradient(circle at top right, hsla(200 80% 60% / 0.14), transparent 24%),
     linear-gradient(180deg, var(--bg-deep), var(--bg-base));
   color: var(--text-main);
   font-family: var(--font-body);
+  overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button,
@@ -62,11 +70,13 @@ input {
 
 #app {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .app-shell {
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
 }
 
@@ -97,7 +107,12 @@ input {
   position: relative;
   z-index: 1;
   min-height: 100vh;
-  padding: 24px;
+  min-height: 100dvh;
+  padding:
+    calc(24px + var(--safe-top))
+    calc(24px + var(--safe-right))
+    calc(24px + var(--safe-bottom))
+    calc(24px + var(--safe-left));
 }
 
 .screen {
@@ -131,10 +146,12 @@ input {
 .hero-card--focus,
 .hero-card--break {
   min-height: calc(100vh - 48px);
+  min-height: calc(100dvh - 48px - var(--safe-top) - var(--safe-bottom));
 }
 
 .hero-card--guide {
   min-height: calc(100vh - 48px);
+  min-height: calc(100dvh - 48px - var(--safe-top) - var(--safe-bottom));
   display: flex;
   align-items: center;
   position: relative;
@@ -585,16 +602,18 @@ input {
   border: 1px solid var(--border-soft);
 }
 
-.primary-button:hover,
-.secondary-button:hover,
-.ghost-button:hover,
-.icon-button:hover,
-.mode-button:hover,
-.chip-button:hover,
-.type-chip:hover,
-.quest-card:hover,
-.text-button:hover {
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .primary-button:hover,
+  .secondary-button:hover,
+  .ghost-button:hover,
+  .icon-button:hover,
+  .mode-button:hover,
+  .chip-button:hover,
+  .type-chip:hover,
+  .quest-card:hover,
+  .text-button:hover {
+    transform: translateY(-1px);
+  }
 }
 
 .start-row {
@@ -1183,7 +1202,7 @@ input {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 24px;
+  bottom: calc(24px + var(--safe-bottom));
   transform: translateX(-50%);
   z-index: 10;
   padding: 14px 18px;
@@ -1212,7 +1231,11 @@ input {
   }
 
   .app-shell__main {
-    padding: 16px;
+    padding:
+      calc(16px + var(--safe-top))
+      calc(16px + var(--safe-right))
+      calc(16px + var(--safe-bottom))
+      calc(16px + var(--safe-left));
   }
 
   .hero-card,
@@ -1288,9 +1311,11 @@ input {
   transition: border-color 0.3s, background 0.3s;
 }
 
-.shop-card:hover {
-  border-color: hsla(42 90% 50% / 0.3);
-  background: hsla(42 90% 50% / 0.06);
+@media (hover: hover) and (pointer: fine) {
+  .shop-card:hover {
+    border-color: hsla(42 90% 50% / 0.3);
+    background: hsla(42 90% 50% / 0.06);
+  }
 }
 
 .shop-card--owned {
@@ -1375,9 +1400,11 @@ input {
   transition: transform 0.2s, border-color 0.2s, background 0.2s;
 }
 
-.satisfaction-btn:hover {
-  transform: scale(1.15);
-  background: hsla(0 0% 100% / 0.1);
+@media (hover: hover) and (pointer: fine) {
+  .satisfaction-btn:hover {
+    transform: scale(1.15);
+    background: hsla(0 0% 100% / 0.1);
+  }
 }
 
 .satisfaction-btn.is-active {

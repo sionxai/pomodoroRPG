@@ -1,0 +1,48 @@
+diff --git a/node_modules/@capacitor-firebase/authentication/ios/Plugin/FirebaseAuthentication.swift b/node_modules/@capacitor-firebase/authentication/ios/Plugin/FirebaseAuthentication.swift
+--- a/node_modules/@capacitor-firebase/authentication/ios/Plugin/FirebaseAuthentication.swift
++++ b/node_modules/@capacitor-firebase/authentication/ios/Plugin/FirebaseAuthentication.swift
+@@ -22,18 +22,20 @@
+         self.plugin = plugin
+         self.config = config
+         super.init()
+-        if FirebaseApp.app() == nil {
+-            FirebaseApp.configure()
+-        }
+         self.initAuthProviderHandlers(config: config)
+-        Auth.auth().addStateDidChangeListener {_, _ in
+-            self.plugin.handleAuthStateChange()
+-        }
+-        _ = Auth.auth().addIDTokenDidChangeListener {_, _ in
+-            self.plugin.handleIdTokenChange()
+-        }
+-        if let authDomain = config.authDomain {
+-            Auth.auth().customAuthDomain = authDomain
++        if config.skipNativeAuth != true {
++            if FirebaseApp.app() == nil {
++                FirebaseApp.configure()
++            }
++            Auth.auth().addStateDidChangeListener {_, _ in
++                self.plugin.handleAuthStateChange()
++            }
++            _ = Auth.auth().addIDTokenDidChangeListener {_, _ in
++                self.plugin.handleIdTokenChange()
++            }
++            if let authDomain = config.authDomain {
++                Auth.auth().customAuthDomain = authDomain
++            }
+         }
+     }
+ 
+@@ -484,6 +486,12 @@
+     }
+ 
+     @objc func signOut(_ call: CAPPluginCall) {
++        if config.skipNativeAuth == true {
++            googleAuthProviderHandler?.signOut()
++            facebookAuthProviderHandler?.signOut()
++            call.resolve()
++            return
++        }
+         do {
+             try Auth.auth().signOut()
+             googleAuthProviderHandler?.signOut()

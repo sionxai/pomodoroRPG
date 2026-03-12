@@ -1,0 +1,17 @@
+{
+  "name": "FocusQuest",
+  "short_name": "FocusQuest",
+  "lang": "ko",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#101525",
+  "theme_color": "#101525",
+  "description": "집중하면 서재가 자라고, 해야 할 일은 퀘스트처럼 전진하는 포모도로 앱",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
