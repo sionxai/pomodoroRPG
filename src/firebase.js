@@ -11,8 +11,11 @@ import { initializeApp } from "firebase/app";
 import {
   GoogleAuthProvider,
   OAuthProvider,
+  browserLocalPersistence,
   getAuth,
   getRedirectResult,
+  indexedDBLocalPersistence,
+  initializeAuth,
   onAuthStateChanged,
   signInWithCredential,
   signInWithPopup,
@@ -42,7 +45,12 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+
+// Capacitor iOS WKWebView에서 getAuth()의 기본 IndexedDB persistence가
+// 멈추는 문제를 방지하기 위해 네이티브 환경에서는 initializeAuth + browserLocalPersistence 사용
+const auth = Capacitor.isNativePlatform()
+  ? initializeAuth(app, { persistence: browserLocalPersistence })
+  : getAuth(app);
 const db = getFirestore(app);
 
 const googleProvider = new GoogleAuthProvider();
@@ -97,7 +105,13 @@ function buildAppleCredential(nativeResult) {
 }
 
 async function completeSignInWithCredential(credential) {
-  const result = await signInWithCredential(auth, credential);
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("로그인 응답 시간 초과")), 15000)
+  );
+  const result = await Promise.race([
+    signInWithCredential(auth, credential),
+    timeout,
+  ]);
   return { status: "success", user: result.user };
 }
 
