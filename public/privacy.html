@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FocusQuest 개인정보 처리방침</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101525;
+      --surface: #1a1f35;
+      --text: #e8e6e3;
+      --text-dim: #9a97a0;
+      --accent: #d4a245;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding: 24px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    h1 { color: var(--accent); font-size: 1.6rem; margin-bottom: 8px; }
+    h2 { color: var(--accent); font-size: 1.15rem; margin-top: 32px; margin-bottom: 8px; }
+    p, li { color: var(--text-dim); font-size: 0.95rem; margin-bottom: 12px; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    .date { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 24px; }
+    .card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 16px;
+      margin-bottom: 16px;
+    }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <h1>FocusQuest 개인정보 처리방침</h1>
+  <p class="date">시행일: 2026년 3월 13일</p>
+
+  <div class="card">
+    <p>FocusQuest(이하 "앱")는 사용자의 개인정보를 중요시하며, 「개인정보 보호법」을 준수합니다. 본 방침은 앱이 수집하는 정보와 그 활용 방법을 설명합니다.</p>
+  </div>
+
+  <h2>1. 수집하는 개인정보</h2>
+  <p>앱은 클라우드 동기화를 위해 로그인 시 아래 정보를 수집합니다.</p>
+  <ul>
+    <li><strong>Google 로그인:</strong> 이름, 이메일 주소, 프로필 사진 URL</li>
+    <li><strong>Apple 로그인:</strong> 이름, 이메일 주소 (Apple이 제공하는 범위)</li>
+  </ul>
+  <p>로그인하지 않고 사용할 경우, 개인정보를 수집하지 않습니다.</p>
+
+  <h2>2. 수집하는 사용 데이터</h2>
+  <p>로그인한 사용자의 경우, 아래 앱 사용 데이터를 Firebase Firestore에 저장합니다.</p>
+  <ul>
+    <li>포모도로 세션 기록 (시작/종료 시간, 집중 시간)</li>
+    <li>퀘스트(할 일) 목록 및 진행 상황</li>
+    <li>일일 활동 기록 및 통계</li>
+    <li>서재 레벨 및 경험치</li>
+  </ul>
+
+  <h2>3. 개인정보의 이용 목적</h2>
+  <ul>
+    <li>기기 간 데이터 동기화</li>
+    <li>사용자 진행 상황 저장 및 복원</li>
+  </ul>
+  <p>수집된 정보는 광고, 마케팅, 제3자 제공에 사용되지 않습니다.</p>
+
+  <h2>4. 개인정보의 보관 및 파기</h2>
+  <p>사용자 데이터는 계정이 유지되는 동안 Firebase Firestore에 안전하게 보관됩니다. 계정 삭제를 요청하시면 관련 데이터를 모두 파기합니다.</p>
+
+  <h2>5. 제3자 서비스</h2>
+  <p>앱은 아래 제3자 서비스를 이용합니다.</p>
+  <ul>
+    <li><strong>Firebase Authentication:</strong> 로그인 인증 처리 (<a href="https://firebase.google.com/support/privacy" target="_blank">Firebase 개인정보 처리방침</a>)</li>
+    <li><strong>Firebase Firestore:</strong> 데이터 저장</li>
+  </ul>
+
+  <h2>6. 데이터 삭제 요청</h2>
+  <p>앱 내 설정에서 로그아웃하거나, 아래 이메일로 데이터 삭제를 요청할 수 있습니다.</p>
+  <p><strong>연락처:</strong> <a href="mailto:support@freeiwan.com">support@freeiwan.com</a></p>
+
+  <h2>7. 아동의 개인정보</h2>
+  <p>앱은 만 14세 미만 아동의 개인정보를 의도적으로 수집하지 않습니다. 만 14세 미만 사용자의 정보가 수집된 사실을 인지하면 즉시 삭제합니다.</p>
+
+  <h2>8. 방침 변경</h2>
+  <p>본 방침이 변경될 경우, 앱 내 공지 또는 본 페이지를 통해 안내합니다.</p>
+
+  <div class="card">
+    <p><strong>FocusQuest</strong><br/>
+    운영: freeiwan<br/>
+    이메일: <a href="mailto:support@freeiwan.com">support@freeiwan.com</a><br/>
+    최종 수정: 2026년 3월 13일</p>
+  </div>
+</body>
+</html>

@@ -13,6 +13,7 @@
             ".gemini/**",
             "ios/**"
         ],
+        "cleanUrls": true,
         "rewrites": [
             {
                 "source": "**",
