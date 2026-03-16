@@ -24,7 +24,10 @@ const STORAGE_KEYS = {
   dailyLogs: "fq_dailyLogs",
   activeSession: "fq_activeSession",
   ui: "fq_ui",
+  questPresets: "fq_questPresets",
 };
+
+const MAX_PRESETS = 10;
 
 const MODE_CONFIG = {
   light: {
@@ -155,6 +158,7 @@ const data = {
   dailyLogs: {},
   activeSession: null,
   ui: null,
+  questPresets: [],
 };
 
 const runtime = {
@@ -176,6 +180,9 @@ const runtime = {
   authUser: null,
   authStateReady: false,
   syncInProgress: false,
+  showPresetPanel: false,
+  presetNameDraft: "",
+  presetMode: "list",
 };
 
 function bootstrap() {
@@ -290,6 +297,7 @@ function hydrateData() {
   data.dailyLogs = StorageService.get(STORAGE_KEYS.dailyLogs, {});
   data.activeSession = StorageService.get(STORAGE_KEYS.activeSession, null);
   data.ui = StorageService.get(STORAGE_KEYS.ui, createDefaultUi());
+  data.questPresets = StorageService.get(STORAGE_KEYS.questPresets, []);
 
   data.user.level = getLevelFromXp(data.user.xp || 0);
   data.user.studyRoomLevel = getStudyRoomLevel(data.user.totalSessions || 0);
@@ -492,6 +500,63 @@ function handleClick(event) {
     return;
   }
 
+  if (action === "toggle-preset-panel") {
+    runtime.showPresetPanel = !runtime.showPresetPanel;
+    runtime.presetMode = "list";
+    runtime.presetNameDraft = "";
+    render();
+    return;
+  }
+
+  if (action === "preset-mode-save") {
+    const activeQuests = getActiveQuests();
+    if (activeQuests.length === 0) {
+      showToast("저장할 활성 퀘스트가 없습니다.");
+      render();
+      return;
+    }
+    if (data.questPresets.length >= MAX_PRESETS) {
+      showToast(`프리셋은 최대 ${MAX_PRESETS}개까지 저장할 수 있습니다.`);
+      render();
+      return;
+    }
+    runtime.presetMode = "save";
+    runtime.presetNameDraft = "";
+    render();
+    return;
+  }
+
+  if (action === "preset-mode-list") {
+    runtime.presetMode = "list";
+    render();
+    return;
+  }
+
+  if (action === "save-preset") {
+    saveQuestPreset();
+    return;
+  }
+
+  if (action === "load-preset") {
+    const presetId = actionTarget.dataset.presetId;
+    loadQuestPreset(presetId);
+    return;
+  }
+
+  if (action === "delete-preset") {
+    const presetId = actionTarget.dataset.presetId;
+    deleteQuestPreset(presetId);
+    return;
+  }
+
+  if (action === "close-preset-panel") {
+    runtime.showPresetPanel = false;
+    runtime.presetMode = "list";
+    runtime.presetNameDraft = "";
+    render();
+    return;
+  }
+
   if (action === "toggle-completed") {
     runtime.showCompleted = !runtime.showCompleted;
     render();
@@ -690,6 +755,9 @@ function handleInput(event) {
   }
   if (input.matches("[data-review-text]")) {
     runtime.reviewDraft.text = input.value;
+  }
+  if (input.matches("input[name='preset-name']")) {
+    runtime.presetNameDraft = input.value;
   }
 }
 
@@ -1030,6 +1098,107 @@ function createQuest() {
   render();
 }
 
+function saveQuestPreset() {
+  const name = runtime.presetNameDraft.trim();
+  if (!name) {
+    showToast("프리셋 이름을 입력해 주세요.");
+    render();
+    return;
+  }
+  if (name.length > 20) {
+    showToast("프리셋 이름은 20자 이하로 입력해 주세요.");
+    render();
+    return;
+  }
+  if (data.questPresets.length >= MAX_PRESETS) {
+    showToast(`프리셋은 최대 ${MAX_PRESETS}개까지 저장할 수 있습니다.`);
+    render();
+    return;
+  }
+
+  const activeQuests = getActiveQuests();
+  if (activeQuests.length === 0) {
+    showToast("저장할 활성 퀘스트가 없습니다.");
+    render();
+    return;
+  }
+
+  const preset = {
+    id: `preset_${Date.now()}`,
+    name,
+    createdAt: new Date().toISOString(),
+    quests: activeQuests.map(q => ({
+      title: q.title,
+      type: q.type,
+      targetPomos: q.targetPomos,
+    })),
+  };
+
+  data.questPresets.push(preset);
+  persistDomain("questPresets");
+  runtime.presetMode = "list";
+  runtime.presetNameDraft = "";
+  showToast(`"${name}" 프리셋을 저장했습니다.`);
+  render();
+}
+
+function loadQuestPreset(presetId) {
+  const preset = data.questPresets.find(p => p.id === presetId);
+  if (!preset) {
+    showToast("프리셋을 찾을 수 없습니다.");
+    return;
+  }
+
+  // 기존 활성 퀘스트 초기화 여부 확인
+  const activeQuests = getActiveQuests();
+  if (activeQuests.length > 0) {
+    const confirmed = window.confirm(
+      `현재 활성 퀘스트 ${activeQuests.length}개가 있습니다.\n기존 퀘스트를 삭제하고 프리셋을 불러올까요?\n(취소하면 기존 퀘스트에 추가됩니다)`
+    );
+    if (confirmed) {
+      // 기존 활성 퀘스트 삭제
+      data.quests = data.quests.filter(q => q.status !== "active");
+    }
+  }
+
+  // 프리셋의 퀘스트들을 생성
+  const now = Date.now();
+  preset.quests.forEach((pq, idx) => {
+    const quest = {
+      id: `quest_${now + idx}`,
+      title: pq.title,
+      type: pq.type,
+      targetPomos: pq.targetPomos,
+      completedPomos: 0,
+      status: "active",
+      createdAt: new Date(now + idx).toISOString(),
+      completedAt: null,
+    };
+    data.quests.unshift(quest);
+  });
+
+  runtime.selectedQuestId = null;
+  ensureSelectedQuest();
+  runtime.showPresetPanel = false;
+  runtime.showQuestForm = false;
+  persistDomain("quests");
+  showToast(`"${preset.name}" 프리셋을 불러왔습니다. (${preset.quests.length}개 퀘스트)`);
+  render();
+}
+
+function deleteQuestPreset(presetId) {
+  const preset = data.questPresets.find(p => p.id === presetId);
+  if (!preset) return;
+
+  const confirmed = window.confirm(`"${preset.name}" 프리셋을 삭제할까요?`);
+  if (!confirmed) return;
+
+  data.questPresets = data.questPresets.filter(p => p.id !== presetId);
+  persistDomain("questPresets");
+  showToast(`"${preset.name}" 프리셋을 삭제했습니다.`);
+  render();
+}
+
 function updateStreak(today) {
   if (!data.user.lastActiveDate) {
     data.user.streak = 1;
@@ -1366,10 +1535,17 @@ function renderHomeView() {
                   <p class="eyebrow">내 퀘스트</p>
                   <h2 class="title-medium">${activeQuests.length > 0 ? "오늘 밀어붙일 작업" : "첫 퀘스트를 만들어보세요"}</h2>
                 </div>
-                <button class="secondary-button" data-action="toggle-quest-form">
-                  ${runtime.showQuestForm ? "닫기" : "+ 새 퀘스트"}
-                </button>
+                <div class="quest-panel__actions">
+                  <button class="icon-button icon-button--preset ${runtime.showPresetPanel ? 'is-active' : ''}" data-action="toggle-preset-panel" aria-label="프리셋" title="퀘스트 프리셋">
+                    📋
+                  </button>
+                  <button class="secondary-button" data-action="toggle-quest-form">
+                    ${runtime.showQuestForm ? "닫기" : "+ 새 퀘스트"}
+                  </button>
+                </div>
               </div>
+
+              ${runtime.showPresetPanel ? renderPresetPanel() : ""}
 
               ${runtime.showQuestForm || data.quests.length === 0
       ? renderQuestForm()
@@ -1415,6 +1591,103 @@ function renderHomeView() {
         </div>
       </div>
     </section>
+  `;
+}
+
+function renderPresetPanel() {
+  const presets = data.questPresets;
+  const activeQuests = getActiveQuests();
+
+  if (runtime.presetMode === "save") {
+    return `
+      <div class="preset-panel preset-panel--save">
+        <div class="preset-panel__header">
+          <div>
+            <p class="eyebrow">프리셋 저장</p>
+            <h3 class="title-medium">현재 퀘스트를 프리셋으로 저장</h3>
+          </div>
+          <button class="icon-button" data-action="preset-mode-list" aria-label="목록으로">←</button>
+        </div>
+
+        <div class="preset-save-form">
+          <label class="field">
+            <span>프리셋 이름</span>
+            <input
+              type="text"
+              name="preset-name"
+              maxlength="20"
+              placeholder="예: 월요일 루틴"
+              value="${escapeAttribute(runtime.presetNameDraft)}"
+              autofocus
+            />
+          </label>
+
+          <div class="preset-preview">
+            <span class="preset-preview__label">저장될 퀘스트 (${activeQuests.length}개)</span>
+            <div class="preset-preview__list">
+              ${activeQuests.map(q => {
+                const qt = QUEST_TYPES[q.type];
+                return `<span class="preset-preview__item">${qt.icon} ${escapeHtml(q.title)} <small>${q.targetPomos}포모</small></span>`;
+              }).join("")}
+            </div>
+          </div>
+
+          <button class="primary-button" data-action="save-preset">💾 프리셋 저장</button>
+        </div>
+
+        <small class="preset-counter">${presets.length}/${MAX_PRESETS}개 사용 중</small>
+      </div>
+    `;
+  }
+
+  // 목록 모드
+  return `
+    <div class="preset-panel">
+      <div class="preset-panel__header">
+        <div>
+          <p class="eyebrow">퀘스트 프리셋</p>
+          <h3 class="title-medium">저장된 프리셋 ${presets.length > 0 ? `(${presets.length}/${MAX_PRESETS})` : ""}</h3>
+        </div>
+        <div class="preset-panel__actions">
+          <button class="secondary-button secondary-button--small" data-action="preset-mode-save" ${activeQuests.length === 0 || presets.length >= MAX_PRESETS ? "disabled" : ""}>
+            + 현재 퀘스트 저장
+          </button>
+          <button class="icon-button" data-action="close-preset-panel" aria-label="닫기">✕</button>
+        </div>
+      </div>
+
+      ${presets.length === 0
+        ? `<div class="preset-empty">
+            <span>📋</span>
+            <p>저장된 프리셋이 없습니다.</p>
+            <small>현재 활성 퀘스트들을 프리셋으로 저장해 두면<br/>다음에 빠르게 불러올 수 있습니다.</small>
+          </div>`
+        : `<div class="preset-list">
+            ${presets.map(preset => {
+              const questSummary = preset.quests.map(q => {
+                const qt = QUEST_TYPES[q.type];
+                return `${qt.icon} ${escapeHtml(q.title)}`;
+              }).join(", ");
+              const date = new Date(preset.createdAt);
+              const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+              return `
+                <div class="preset-card">
+                  <button class="preset-card__main" data-action="load-preset" data-preset-id="${preset.id}">
+                    <div class="preset-card__info">
+                      <strong>${escapeHtml(preset.name)}</strong>
+                      <small>${preset.quests.length}개 퀘스트 · ${dateStr}</small>
+                    </div>
+                    <div class="preset-card__quests">${questSummary}</div>
+                  </button>
+                  <button class="icon-button icon-button--danger icon-button--small" data-action="delete-preset" data-preset-id="${preset.id}" aria-label="프리셋 삭제">
+                    🗑️
+                  </button>
+                </div>
+              `;
+            }).join("")}
+          </div>`
+      }
+    </div>
   `;
 }
 
@@ -2479,6 +2752,7 @@ function persistAll() {
   persistDomain("dailyLogs");
   persistDomain("activeSession");
   persistDomain("ui");
+  persistDomain("questPresets");
 }
 
 function persistDomain(domain) {
@@ -2504,6 +2778,9 @@ function persistDomain(domain) {
       break;
     case "ui":
       StorageService.set(STORAGE_KEYS.ui, data.ui);
+      break;
+    case "questPresets":
+      StorageService.set(STORAGE_KEYS.questPresets, data.questPresets);
       break;
     default:
       break;
@@ -2546,6 +2823,7 @@ function resetAllData() {
   data.dailyLogs = {};
   data.activeSession = null;
   data.ui = createDefaultUi();
+  data.questPresets = [];
 
   runtime.view = "guide";
   runtime.selectedQuestId = null;
@@ -2555,6 +2833,9 @@ function resetAllData() {
   runtime.guideIndex = 0;
   runtime.breakState = null;
   runtime.lastSessionResult = null;
+  runtime.showPresetPanel = false;
+  runtime.presetNameDraft = "";
+  runtime.presetMode = "list";
 
   applyDailyReset();
   persistAll();

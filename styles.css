@@ -1444,3 +1444,228 @@ input {
     opacity: 1;
   }
 }
+
+/* ─── Preset Panel ─── */
+
+.quest-panel__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.icon-button--preset {
+  font-size: 1rem;
+}
+
+.icon-button--preset.is-active {
+  border-color: hsla(200 70% 60% / 0.48);
+  background: hsla(200 70% 60% / 0.18);
+}
+
+.icon-button--small {
+  width: 36px;
+  height: 36px;
+  font-size: 0.85rem;
+}
+
+.secondary-button--small {
+  padding: 8px 14px;
+  font-size: 0.82rem;
+}
+
+.secondary-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.preset-panel {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid hsla(200 70% 60% / 0.22);
+  background:
+    linear-gradient(135deg, hsla(200 70% 60% / 0.12), hsla(200 70% 60% / 0.02) 55%),
+    hsla(0 0% 100% / 0.025);
+  animation: preset-slide-in 260ms ease;
+}
+
+.preset-panel--save {
+  border-color: hsla(146 54% 48% / 0.28);
+  background:
+    linear-gradient(135deg, hsla(146 54% 48% / 0.14), hsla(146 54% 48% / 0.02) 55%),
+    hsla(0 0% 100% / 0.025);
+}
+
+@keyframes preset-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.preset-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.preset-panel__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.preset-panel__header .eyebrow {
+  margin-bottom: 6px;
+}
+
+.preset-panel__header .title-medium {
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+}
+
+/* Save form */
+.preset-save-form {
+  display: grid;
+  gap: 14px;
+}
+
+.preset-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.preset-preview__label {
+  display: block;
+  color: var(--text-faint);
+  font-size: 0.85rem;
+}
+
+.preset-preview__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.preset-preview__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  background: hsla(0 0% 100% / 0.06);
+  border: 1px solid hsla(0 0% 100% / 0.08);
+  color: var(--text-main);
+}
+
+.preset-preview__item small {
+  color: var(--text-faint);
+  margin-left: 2px;
+}
+
+.preset-counter {
+  display: block;
+  text-align: right;
+  color: var(--text-faint);
+  font-size: 0.78rem;
+}
+
+/* Empty state */
+.preset-empty {
+  display: grid;
+  gap: 8px;
+  place-items: center;
+  text-align: center;
+  padding: 28px 20px;
+  border-radius: var(--radius-md);
+  border: 1px dashed hsla(200 70% 60% / 0.22);
+  background: hsla(0 0% 100% / 0.02);
+}
+
+.preset-empty span {
+  font-size: 2rem;
+  opacity: 0.7;
+}
+
+.preset-empty p {
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.preset-empty small {
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+
+/* Preset list */
+.preset-list {
+  display: grid;
+  gap: 10px;
+}
+
+.preset-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: stretch;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-soft);
+  background: hsla(0 0% 100% / 0.035);
+  padding: 4px;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.preset-card:hover {
+  border-color: hsla(200 70% 60% / 0.32);
+  background: hsla(200 70% 60% / 0.06);
+}
+
+.preset-card__main {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 180ms ease;
+}
+
+.preset-card__main:hover {
+  background: hsla(200 70% 60% / 0.08);
+}
+
+.preset-card__info {
+  display: grid;
+  gap: 4px;
+}
+
+.preset-card__info strong {
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.preset-card__info small {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+.preset-card__quests {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
